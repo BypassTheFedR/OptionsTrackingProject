@@ -1,0 +1,17 @@
+.flex-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+@media (max-width: 640px) {
+    .flex-container {
+        padding: 0.5rem 1rem;
+    }
+}
+
+.table-label {
+    padding-right: 40px;
+}

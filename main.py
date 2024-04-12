@@ -21,8 +21,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi import HTTPException, status
 
 from sqlalchemy.orm import Session
-from fastapi.testclient import TestClient
 from pydantic import BaseModel
+from jinja2 import Environment
 
 from sql_app.database import SessionLocal, engine
 from sql_app import models
@@ -38,7 +38,7 @@ def update_prices_daily():
 
     # Check if it's 1:30 PM PST
     if current_time.hour == 13 and current_time.minute == 30:
-        # call the update_prices function from historyal library
+        # call the update_prices function from historical library
         historical.update_prices()
         print("Prices upated at 1:30 PM PST")
 
@@ -172,3 +172,4 @@ async def update_prices():
 
     # Return to main page
     return RedirectResponse(url="/main/")
+

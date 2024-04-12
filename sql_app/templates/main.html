@@ -7,15 +7,18 @@
     <!-- Include Tailwind CSS -->
     <script src="https://unpkg.com/htmx.org@1.61"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="C:\Users\joshu\OneDrive\Coding\OptionsTrackingProject\sql_app\styles\styles.css">
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto py-8">
         <div class="flex justify-end mb-4">
-            <div class="pt-4 pb-4 pl-4 pr-4">
-                <a href="/add_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Strategy</a>
-                <a href="/close_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close Strategy</a>
+            <div class="flex-container">
+                <!-- Development Notes:
+                1) add the close_strategy button to the card
+                2) add the add_trade and roll_trade button to each card-->
+                <a href="/add_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Strategy</a>                
                 <a href="/add_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Trade</a>
-                <a href="/add_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Roll Trade</a>
+                <a href="/roll_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Roll Trade</a>
                 <a href="/close_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close Trade</a>
                 <a href="/update_prices" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Update Stock Prices</a>
             </div>
@@ -24,21 +27,36 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Strategy Cards -->
             {% for strategy in strategies %}
-            
             <div class="bg-white rounded shadow p-4">
                 <h2 class="text-xl font-semibold">{{ strategy.underlying }}</h2>
-                <p>Initial Cost Basis: {{ strategy.initial_cost_basis }}</p>
-                <p>Current Cost Basis: {{ strategy.current_cost_basis }}</p>
-                {% if strategy.prices %}
-                    <p>Current Stock Price: {{ strategy.prices[-1].price }}</p>
-                {% else %}
-                    <p>Null</p>
-                {% endif %}
-                    <p>Total Gained: {{ strategy.total_gained }}</p>
-                <p>ROI: {{ strategy.roi }}</p>
+                <table class="table-auto mb-4">
+                    <tbody>
+                        <tr>
+                            <td class="table-label">Initial Cost Basis:</td>
+                            <td>{{ "$%.2f"|format(strategy.initial_cost_basis) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Current Cost Basis:</td>
+                            <td>{{ "$%.2f"|format(strategy.current_cost_basis) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Current Stock Price:</td>
+                            <td>{% if strategy.prices %}{{ "$%.2f"|format(strategy.prices[-1].price) }}{% else %}Null{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Total Gained:</td>
+                            <td>{{ "$%.2f"|format(strategy.total_premium_received - strategy.initial_cost_basis + strategy.prices[-1].price) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">ROI:</td>
+                            <td >{{ "%.2f"|format((strategy.total_premium_received - strategy.initial_cost_basis + strategy.prices[-1].price) / strategy.initial_cost_basis * 100) }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <a href="/close_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded">Close Strategy</a>
             </div>
             {% endfor %}
         </div>
     </div>
 </body>
-</html
+</html>
