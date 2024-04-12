@@ -1,0 +1,15 @@
+{% for strategy in strategies %}
+    <tr>
+        <td class="border px-2 py-2">{{ strategy.underlying }}</td>
+        <td class="border px-2 py-2">{{ strategy.initial_cost_basis }}</td>
+        <td class="border px-2 py-2">{{ strategy.current_cost_basis }}</td>
+    </tr>
+{% endfor %}
+
+<tr>
+    <td colspan="2">
+        <button class="px-3 py-1 bg-blue-600 text-white ml-4"
+                    hx-get="/index?page={{ page + 1}}"
+                    hx-target="#table-body">Load More</button>
+    </td>
+</tr>

@@ -36,7 +36,7 @@ def create_db(db_file):
                    TotalPremium REAL,
                    StrikePrice REAL,
                    Expiry DATE,
-                   Type TEXT,
+                   OptionType TEXT,
                    Open BOOLEAN,
                    Fee REAL,
                    FOREIGN KEY (StrategyID) REFERENCES Strategies(StrategyID)   

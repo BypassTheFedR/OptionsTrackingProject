@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- head content -->
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-semibold text-center mb-8">Add Strategy</h1>
+        <form action="/add_strategy" method="post">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="underlying">Underlying:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="underlying" name="underlying" type="text" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="initial_cost_basis">Initial Cost Basis:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="initial_cost_basis" name="initial_cost_basis" type="number" step="0.01" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="initial_trade_date">Initial Trade Date:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="initial_trade_date" name="initial_trade_date" type="date" required>
+            </div>
+            <div class="flex items-center justify-between">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                    Add Strategy
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,13 +1,12 @@
 from sqlalchemy import MetaData, create_engine, ForeignKey, Column, Integer, String, Float, Date, Boolean
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 from datetime import datetime
-
-
+from sql_app.database import Base
 
 class Strategy(Base):
     __tablename__ = "strategies"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     underlying = Column(String)
     initial_cost_basis = Column(Float)
     current_cost_basis = Column(Float)
@@ -16,9 +15,13 @@ class Strategy(Base):
     status = Column(String)
     closing_date = Column(Date)
     
-    # trades = relationship("Trade", backref="strategies")
+    # Define relationship to the Trades table
+    trades = relationship("Trade", back_populates="strategy")
     
-    def __init__(self, underlying,initial_cost_basis,initial_trade_date,total_premium_received,times_assigned=0,status="Open",closing_date=None):
+    # Define relationship to the Prices table
+    prices = relationship("Prices", backref="strategy")
+    
+    def __init__(self, underlying,initial_cost_basis,initial_trade_date,total_premium_received=0,times_assigned=0,status="Open",closing_date=None):
         self.underlying = underlying
         self.initial_cost_basis = initial_cost_basis
         self.current_cost_basis = initial_cost_basis - total_premium_received
@@ -42,7 +45,8 @@ class Trade(Base):
     trade_date = Column(Date)
     assigned_price = Column(Float)
     assigned = Column(Boolean) # When updating a trade and this is true, increment times assigned in strategies
-    # strategies = relationship("Strategy", backref="trades")
+
+    strategy = relationship("Strategy", back_populates="trades")
 
     def __init__(self, strategy_id, strike, expiry, premium_per_contract,num_contracts,trade_date,assigned_price=None,assigned=0):
         self.strategy_id = strategy_id
@@ -55,11 +59,16 @@ class Trade(Base):
         self.assigned_price = assigned_price
         self.assigned = assigned
 
-# Base.metadata.create_all(engine)
-session = Session()
-strategy1 = Strategy("AAPL",170.0,'3/22/2024',1)
-trade1 = Trade(2,170.0,'3/28/2024',1,1,'3/22/2024')
-session.add(strategy1)
-session.add(trade1)
-session.commit()
-session.close()
+class Prices(Base):
+
+    __tablename__ = "prices"
+
+    id = Column(Integer, primary_key=True)
+    strategy_id = Column(ForeignKey('strategies.id'))
+    data_date = Column(Date)
+    price = Column(Float)
+
+    def __init__(self, strategy_id, data_date, price):
+        self.strategy_id = strategy_id
+        self.data_date = data_date
+        self.price = price

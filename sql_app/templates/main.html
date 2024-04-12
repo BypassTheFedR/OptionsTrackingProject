@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current Strategies</title>
+    <!-- Include Tailwind CSS -->
+    <script src="https://unpkg.com/htmx.org@1.61"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto py-8">
+        <div class="flex justify-end mb-4">
+            <div class="pt-4 pb-4 pl-4 pr-4">
+                <a href="/add_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Strategy</a>
+                <a href="/close_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close Strategy</a>
+                <a href="/add_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Trade</a>
+                <a href="/add_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Roll Trade</a>
+                <a href="/close_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close Trade</a>
+                <a href="/update_prices" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Update Stock Prices</a>
+            </div>
+        </div>
+        <h1 class="text-3xl font-semibold text-center mb-8">My Strategies</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Strategy Cards -->
+            {% for strategy in strategies %}
+            
+            <div class="bg-white rounded shadow p-4">
+                <h2 class="text-xl font-semibold">{{ strategy.underlying }}</h2>
+                <p>Initial Cost Basis: {{ strategy.initial_cost_basis }}</p>
+                <p>Current Cost Basis: {{ strategy.current_cost_basis }}</p>
+                {% if strategy.prices %}
+                    <p>Current Stock Price: {{ strategy.prices[-1].price }}</p>
+                {% else %}
+                    <p>Null</p>
+                {% endif %}
+                    <p>Total Gained: {{ strategy.total_gained }}</p>
+                <p>ROI: {{ strategy.roi }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html

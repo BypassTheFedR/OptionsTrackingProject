@@ -1,4 +1,4 @@
-from connect import connect_to_database, disconnect_from_database
+from backend.lib.Archives.connect import connect_to_database, disconnect_from_database
 from datetime import datetime, date
 import pandas as pd
   
