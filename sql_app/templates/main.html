@@ -8,6 +8,39 @@
     <script src="https://unpkg.com/htmx.org@1.61"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="C:\Users\joshu\OneDrive\Coding\OptionsTrackingProject\sql_app\styles\styles.css">
+    <script>
+        function confirmClose(strategyId) {
+            if (confirm("Are you sure you want to close this strategy?")) {
+                // send a POST request to the /close_strategy endpoint
+                fetch("/close_strategy", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: `strategyId=${strategyId}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Reload the page if the request was successful
+                        location.reload();
+                    } else {
+                        // Handle error
+                        throw new Error("Failed to close the strategy.");
+                    }
+                })
+                .catch(error => {
+                    // Display error message
+                    alert(error.message);
+                });
+            }
+        } 
+    </script>
+    <!-- Use this is necessary for routing to the page 
+        <script>
+        function navigateToAddTrade(strategyId) {
+            window.location.herf = "/add_trade?strategy_id=" + strategyId;
+        }
+    </script> -->
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto py-8">
@@ -41,7 +74,7 @@
                         </tr>
                         <tr>
                             <td class="table-label">Current Stock Price:</td>
-                            <td>{% if strategy.prices %}{{ "$%.2f"|format(strategy.prices[-1].price) }}{% else %}Null{% endif %}</td>
+                            <td>{{ "$%.2f"|format(strategy.prices[-1].price) if strategy.prices else "N/A" }}</td>
                         </tr>
                         <tr>
                             <td class="table-label">Total Gained:</td>
@@ -53,7 +86,8 @@
                         </tr>
                     </tbody>
                 </table>
-                <a href="/close_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded">Close Strategy</a>
+                <a onclick="confirmClose('{{ strategy.id }}')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded">Close Strategy</a>
+                <a href="/add_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add Trade</a>
             </div>
             {% endfor %}
         </div>

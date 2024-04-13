@@ -74,27 +74,7 @@ def get_db():
     finally:
         db.close()
 
-@app.get('/index/', response_class=HTMLResponse)
-async def strategy_list(
-    request: Request, 
-    hx_request: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
-    page: int = 1
-):
-    strategies = db.query(models.Strategy).all()
-    # print(strategies)
-    
-    context = {'request': request, 'strategies': strategies, "page": page}
-    if hx_request:
-        return templates.TemplateResponse("table.html", context)
-
-    return templates.TemplateResponse("index.html", context)
-
-@app.get('/')
-async def redirect_to_main():
-    return RedirectResponse(url='/main/')
-
-@app.get('/main/', response_class=HTMLResponse)
+@app.get('/', response_class=HTMLResponse)
 async def home_page(
     request: Request,
     hx_request: Optional[str] = Header(None),
@@ -107,20 +87,16 @@ async def home_page(
     # Need to test total_gain is calculated correctly
 
     for strategy in strategies:
-        total_gained = 0.0
+        if strategy.prices:
+            latest_price = strategy.prices[-1].price
+            total_gained = (
+                strategy.total_premium_received - strategy.initial_cost_basis + latest_price
+            )
+        else:
+            total_gained = 0.0
+            
+    # strategy.total_gained = total_gained
 
-        # Get the last trade associated with the strategy
-        last_trade = strategy.trades[-1] if strategy.trades else None
-
-        if last_trade:
-            if last_trade.trade_type == 'call':
-                print('call')
-                total_gained = (strategy.prices[-1] - strategy.initial_cost_basis + strategy.total_premium_received)
-            elif last_trade.trade_type == 'put':
-                print('put')
-                total_gained = strategy.total_premium_received
-        
-        strategy.total_gained = total_gained
 
     context = {'request': request, 'strategies': strategies, 'prices' : prices}
     
@@ -160,12 +136,9 @@ async def add_strategy(
     # Commit the transaction
     db.commit()
     db.refresh(new_strategy)
-
-    # Update the prices after adding a strategy
-    historical.update_prices()
     
     # Redirect the user to the main page using GET method
-    return RedirectResponse(url="/main/", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 class add_strategy(BaseModel):
     underlying: str 
@@ -178,66 +151,21 @@ async def update_prices():
     historical.update_prices()
 
     # Return to main page
-    return RedirectResponse(url="/main/")
+    return RedirectResponse(url="/")
 
 @app.post("/close_strategy")
 async def close_strategy(strategyId: str = Form(...), db: Session = Depends(get_db)):
-    # Retrieve the strategy from the database
+    # Retrive the strategy from the database
     strategy = db.query(models.Strategy).filter(models.Strategy.id == strategyId).first()
-
-    # Update the strategy status
+    if not strategy:
+        raise HTTPException(status_code=404, detail="Strategy not found.")
+    
+    # Update the strategy status to "closed"
     strategy.status = "Closed"
     db.commit()
 
     # Return a success response
-    return {"Message": "Strategy closed succesfully"}
-
-@app.get("/add_trade/")
-async def add_trade_form(request: Request):
-    return templates.TemplateResponse("add_trade.html", {"request" : request})
-
-# Function for adding trades to the Trades class
-# Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
-# @app.post("/add_trade/")
-# async def add_trade(
-#     request: Request,
-#     underlying: str = Form(...),
-#     initial_cost_basis: float = Form(...),
-#     initial_trade_date: str = Form(...),
-#     db: Session = Depends(get_db)
-# ):    
-#     def __init__(self, strategy_id, strike, expiry, premium_per_contract,num_contracts,trade_date,assigned_price=None,assigned=0):
-#         self.strategy_id = strategy_id
-#         self.strike = strike
-#         self.expiry = datetime.strptime(expiry, '%m/%d/%Y')
-#         self.premium_per_contract = premium_per_contract
-#         self.num_contracts = num_contracts
-#         self.total_premium_received = premium_per_contract * num_contracts
-#         self.trade_date = datetime.strptime(trade_date, '%m/%d/%Y')
-#         self.assigned_price = assigned_price
-#         self.assigned = assigned
-#     # Parse (Convert?) the date string 
-#     parsed_date = datetime.strptime(initial_trade_date,'%Y-%m-%d')
-
-#     # Format the date string as desired
-#     formatted_date = parsed_date.strftime('%m/%d/%Y')
-    
-#     # Create a Strategy object
-#     new_strategy = models.Strategy(
-#         underlying=underlying,
-#         initial_cost_basis=initial_cost_basis,
-#         initial_trade_date=formatted_date
-#     )
-    
-#     # Add the new Strategy object to the session
-#     db.add(new_strategy)
-    
-#     # Commit the transaction
-#     db.commit()
-#     db.refresh(new_strategy)
-    
-#     # Redirect the user to the main page using GET method
-#     return RedirectResponse(url="/main/", status_code=status.HTTP_303_SEE_OTHER)
+    return {"message" : "Strategy closed successfully."}
 
 
 
