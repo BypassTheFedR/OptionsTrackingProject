@@ -193,51 +193,50 @@ async def close_strategy(strategyId: str = Form(...), db: Session = Depends(get_
     return {"Message": "Strategy closed succesfully"}
 
 @app.get("/add_trade/")
-async def add_trade_form(request: Request):
-    return templates.TemplateResponse("add_trade.html", {"request" : request})
+async def add_trade_form(request: Request, strategy_id: int, db: Session = Depends(get_db)):
+    # Retrive the strategy from the databaes based on the strateg_id
+    strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
+    
+    if strategy is None:
+        # Handle the case where the strategy is nto found
+        raise HTTPException(status_code=404, detail="Strategy not found")
+    
+    return templates.TemplateResponse("add_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy})
 
 # Function for adding trades to the Trades class
 # Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
-# @app.post("/add_trade/")
-# async def add_trade(
-#     request: Request,
-#     underlying: str = Form(...),
-#     initial_cost_basis: float = Form(...),
-#     initial_trade_date: str = Form(...),
-#     db: Session = Depends(get_db)
-# ):    
-#     def __init__(self, strategy_id, strike, expiry, premium_per_contract,num_contracts,trade_date,assigned_price=None,assigned=0):
-#         self.strategy_id = strategy_id
-#         self.strike = strike
-#         self.expiry = datetime.strptime(expiry, '%m/%d/%Y')
-#         self.premium_per_contract = premium_per_contract
-#         self.num_contracts = num_contracts
-#         self.total_premium_received = premium_per_contract * num_contracts
-#         self.trade_date = datetime.strptime(trade_date, '%m/%d/%Y')
-#         self.assigned_price = assigned_price
-#         self.assigned = assigned
-#     # Parse (Convert?) the date string 
-#     parsed_date = datetime.strptime(initial_trade_date,'%Y-%m-%d')
+@app.post("/add_trade/")
+async def add_trade(
+    request: Request,
+    strategy_id: int = Form(...),
+    trade_type: str = Form(...),
+    strike: float = Form(...),
+    expiry: str = Form(...),
+    premium_per_contract: float = Form(...),
+    num_contracts: int = Form(...),
+    trade_date: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # Create a trade object
+    new_trade = models.Trade(
+        strategy_id=strategy_id,  # Ensure that strategy_id is included
+        trade_type=trade_type,
+        strike=strike,
+        expiry=expiry,
+        premium_per_contract=premium_per_contract,
+        num_contracts=num_contracts,
+        trade_date=trade_date     
+    )
+    
+    # Add the new trade to the session
+    db.add(new_trade)
+    
+    # Commit the transaction
+    db.commit()
+    
+    # Redirect the user to the main page using GET method
+    return RedirectResponse(url="/main/", status_code=status.HTTP_303_SEE_OTHER)
 
-#     # Format the date string as desired
-#     formatted_date = parsed_date.strftime('%m/%d/%Y')
-    
-#     # Create a Strategy object
-#     new_strategy = models.Strategy(
-#         underlying=underlying,
-#         initial_cost_basis=initial_cost_basis,
-#         initial_trade_date=formatted_date
-#     )
-    
-#     # Add the new Strategy object to the session
-#     db.add(new_strategy)
-    
-#     # Commit the transaction
-#     db.commit()
-#     db.refresh(new_strategy)
-    
-#     # Redirect the user to the main page using GET method
-#     return RedirectResponse(url="/main/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 
