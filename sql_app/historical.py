@@ -20,7 +20,7 @@ def update_prices():
 
     for strategy in active_strategies:
         tickers.append(strategy.underlying)
-        print(f'Adding {strategy.underlying}')
+        # print(f'Adding {strategy.underlying}')
 
     for strategy in active_strategies:
         strategy_ids.append(strategy.id)
@@ -36,3 +36,5 @@ def update_prices():
     
     db.commit()
     db.close()
+
+update_prices()

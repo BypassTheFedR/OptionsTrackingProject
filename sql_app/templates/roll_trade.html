@@ -12,23 +12,27 @@
 <body class="bg-gray-100">
     <div class="container mx-auto py-8">
         <h1 class="text-3xl font-semibold text-center mb-8">Add Trade</h1>
-        <form action="/add_trade/" method="post">
+        <form action="/roll_trade/" method="post">
             <input type="hidden" name="strategy_id" value="{{ strategy_id  }}">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="trade_type">Trade Type:</label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="trade_type" name="trade_type" type="text" required>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="strike">Strike:</label>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="strike">New Strike:</label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="strike" name="strike" type="number" step="0.01" required>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="expiry">Expiration Date:</label>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="expiry">New Expiration Date:</label>
                 <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="expiry" name="expiry" type="date" required>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="opening_premium">Opening premium:</label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="opening_premium" name="opening_premium" type="number" step="0.01" required>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="premium_per_contract">Closing premium per contract:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="premium_per_contract" name="premium_per_contract" type="number" step="0.01" required>
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="premium_per_contract">Opening premium per contract:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="premium_per_contract" name="premium_per_contract" type="number" step="0.01" required>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="num_contracts">Number Contracts:</label>

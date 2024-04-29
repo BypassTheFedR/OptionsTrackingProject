@@ -1,7 +1,8 @@
-from sqlalchemy import MetaData, create_engine, ForeignKey, Column, Integer, String, Float, Date, Boolean
-from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+from sqlalchemy import MetaData, create_engine, ForeignKey, Column, Integer, String, Float, Date, Boolean, update, func
+from sqlalchemy.orm import relationship, Session, sessionmaker, declarative_base
 from datetime import datetime
 from sql_app.database import Base
+import logging
 
 class Strategy(Base):
     __tablename__ = "strategies"
@@ -30,6 +31,26 @@ class Strategy(Base):
         self.times_assigned = times_assigned
         self.status = status
         self.closing_date = datetime.strptime(closing_date, '%m/%d/%Y') if closing_date else None  # Parse string to date, if not None
+
+    def update_total_premium_received(self, db: Session):
+        # Calculate the total premium received
+        total_premium_received = db.query(func.sum(Trade.total_premium_received)).filter(Trade.strategy_id == self.id).scalar()
+
+        # Update the total_premium_received attribute
+        db.query(Strategy).filter(Strategy.id == self.id).update({Strategy.total_premium_received: total_premium_received})
+
+        # Get the initial cost basis
+        initial_basis = db.query(Strategy.initial_cost_basis).filter(Strategy.id == self.id).scalar()
+        print(initial_basis)
+
+        # Calculate the new basis
+        new_basis = initial_basis - total_premium_received
+
+        # Update the current cost basis
+        db.query(Strategy).filter(Strategy.id == self.id).update({Strategy.current_cost_basis: new_basis})
+        
+        db.commit()
+
     
 class Trade(Base):
     __tablename__ = "trades"
@@ -39,7 +60,8 @@ class Trade(Base):
     trade_type = Column(String)
     strike = Column(Float)
     expiry = Column(Date)
-    premium_per_contract = Column(Float)
+    opening_premium = Column(Float)
+    closing_premium = Column(Float)
     num_contracts = Column(Integer)
     total_premium_received = Column(Float)
     trade_date = Column(Date)
@@ -48,13 +70,15 @@ class Trade(Base):
 
     strategy = relationship("Strategy", back_populates="trades")
 
-    def __init__(self, strategy_id, strike, expiry, premium_per_contract,num_contracts,trade_date,assigned_price=None,assigned=0):
+    def __init__(self, strategy_id, trade_type, strike, expiry, opening_premium,num_contracts,trade_date,closing_premium=0.0,assigned_price=None,assigned=0):
         self.strategy_id = strategy_id
+        self.trade_type = trade_type
         self.strike = strike
         self.expiry = datetime.strptime(expiry, '%m/%d/%Y')
-        self.premium_per_contract = premium_per_contract
+        self.opening_premium = opening_premium
+        self.closing_premim = closing_premium
         self.num_contracts = num_contracts
-        self.total_premium_received = premium_per_contract * num_contracts
+        self.total_premium_received = (opening_premium - closing_premium) * num_contracts
         self.trade_date = datetime.strptime(trade_date, '%m/%d/%Y')
         self.assigned_price = assigned_price
         self.assigned = assigned

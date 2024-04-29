@@ -1,6 +1,6 @@
 #############################################################################
 ## Option tracking software made by Chaotic Neutral                        ##
-## Start the app on localhost by running from the main direcotry           ##
+## Start the app on localhost by running from the main directory           ##
 ##    uvicorn sql_app.main:app --reload                                    ##
 ## Serve the app to the local network by running:                          ## 
 ##    uvicorn main:app --reload -- host 0.0.0.0 --port 8000                ##
@@ -10,8 +10,10 @@
 import logging
 import schedule
 import time
+import signal
+import sys
 from threading import Thread
-from datetime import datetime, timedelta
+from datetime import datetime
 from pytz import timezone
 from typing import Optional
 
@@ -21,14 +23,17 @@ from fastapi.templating import Jinja2Templates
 from fastapi import HTTPException, status
 
 from sqlalchemy.orm import Session
+from sqlalchemy import desc, func
 from pydantic import BaseModel
-from jinja2 import Environment
+import jinja2.exceptions
 
 from sql_app.database import SessionLocal, engine
 from sql_app import models
 from sql_app import historical
 
 models.Base.metadata.create_all(bind=engine)
+
+# * scheduler_running = True
 
 # Functions and schedulers to update prices daily.
 def update_prices_daily():
@@ -42,14 +47,27 @@ def update_prices_daily():
         historical.update_prices()
         print("Prices upated at 1:30 PM PST")
 
+def stop_scheduler():
+    global scheduler_running
+    scheduler_running = False
+
+def signal_handler(sig, frame):
+    print("Stopping scheduler...")
+    stop_scheduler()
+
 def run_scheduler():
     # Schedule the update_prices_daily function to run daily at 1:30 PM PST
     schedule.every().day.at('13:30').do(update_prices_daily)
+    # * global scheduler_running
 
     # Run the schedule in a separate thread
     while True:
+    # *while scheduler_running:
         schedule.run_pending()
         time.sleep(60)
+
+# Set up signal handler
+#  * signal.signal(signal.SIGINT, signal_handler)
 
 # Start the schedule in a separate thread
 scheduler_thread = Thread(target=run_scheduler)
@@ -74,60 +92,41 @@ def get_db():
     finally:
         db.close()
 
-@app.get('/index/', response_class=HTMLResponse)
-async def strategy_list(
-    request: Request, 
-    hx_request: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
-    page: int = 1
-):
-    strategies = db.query(models.Strategy).all()
-    # print(strategies)
-    
-    context = {'request': request, 'strategies': strategies, "page": page}
-    if hx_request:
-        return templates.TemplateResponse("table.html", context)
-
-    return templates.TemplateResponse("index.html", context)
-
-@app.get('/')
-async def redirect_to_main():
-    return RedirectResponse(url='/main/')
-
-@app.get('/main/', response_class=HTMLResponse)
+@app.get('/', response_class=HTMLResponse)
 async def home_page(
     request: Request,
     hx_request: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    strategies = db.query(models.Strategy).filter(models.Strategy.status == "Open").all()
-    prices = db.query(models.Prices).all()
-
-    # Notes for testing and future capabilities:
-    # Need to test total_gain is calculated correctly
-
-    for strategy in strategies:
-        total_gained = 0.0
-
-        # Get the last trade associated with the strategy
-        last_trade = strategy.trades[-1] if strategy.trades else None
-
-        if last_trade:
-            if last_trade.trade_type == 'call':
-                print('call')
-                total_gained = (strategy.prices[-1] - strategy.initial_cost_basis + strategy.total_premium_received)
-            elif last_trade.trade_type == 'put':
-                print('put')
-                total_gained = strategy.total_premium_received
+    try:
+        strategies = db.query(models.Strategy).filter(models.Strategy.status == "Open").all()
+        prices = db.query(models.Prices).all()
         
-        strategy.total_gained = total_gained
-
-    context = {'request': request, 'strategies': strategies, 'prices' : prices}
+        context = {'request': request, 'strategies': strategies, 'prices': prices}
+        
+        for strategy in strategies:
+            strategy_type = db.query(models.Trade.trade_type).filter(models.Trade.strategy_id == strategy.id).order_by(desc(models.Trade.id)).first()
+            strategy_type_str = strategy_type[0]
+            # print(strategy_type_str)
+            last_price_query = db.query(models.Prices).filter(models.Prices.strategy_id == strategy.id).order_by(desc(models.Prices.id)).first()
+            last_price = last_price_query.price
+            strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
+            # if strategy_type_str.lower() == "call":
+            #     strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
+            # elif strategy_type_str.lower() == "put":
+            #     strategy.total_gained = strategy.total_premium_received
+        
+        if hx_request:
+            return templates.TemplateResponse("table_main.html", context)
+        return templates.TemplateResponse("main.html", context)
     
-    if hx_request:
-        return templates.TemplateResponse("table_main.html", context)
-    
-    return templates.TemplateResponse("main.html", context)
+    except Exception as e:
+        # Log the error for debugging purposes
+        logger.error(f"An error occurred: {e}")
+        
+        # Render an error message directly without redirecting
+        error_message = "An error occurred. Please try again later."
+        return HTMLResponse(content=f"<h1>{error_message}</h1>", status_code=500)
 
 @app.get("/add_strategy/")
 async def add_strategy_form(request: Request):
@@ -164,8 +163,8 @@ async def add_strategy(
     # Update the prices after adding a strategy
     historical.update_prices()
     
-    # Redirect the user to the main page using GET method
-    return RedirectResponse(url="/main/", status_code=status.HTTP_303_SEE_OTHER)
+    # Redirect the user to the root menu using GET method
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 class add_strategy(BaseModel):
     underlying: str 
@@ -177,8 +176,8 @@ async def update_prices():
     # Updates the price of current strategies
     historical.update_prices()
 
-    # Return to main page
-    return RedirectResponse(url="/main/")
+    # Return to root menu
+    return RedirectResponse(url="/")
 
 @app.post("/close_strategy")
 async def close_strategy(strategyId: str = Form(...), db: Session = Depends(get_db)):
@@ -205,6 +204,8 @@ async def add_trade_form(request: Request, strategy_id: int, db: Session = Depen
 
 # Function for adding trades to the Trades class
 # Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
+# I had to alter the schema to allow for taking the BTC premium into account for the final premium for the trade
+# added opening_premium and closing_premium and set total_premium to be calculated from opening - closing. Closing is set to 0 by default in the trades init
 @app.post("/add_trade/")
 async def add_trade(
     request: Request,
@@ -212,31 +213,51 @@ async def add_trade(
     trade_type: str = Form(...),
     strike: float = Form(...),
     expiry: str = Form(...),
-    premium_per_contract: float = Form(...),
+    opening_premium: float = Form(...),
     num_contracts: int = Form(...),
     trade_date: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    # Parse the date string 
+    parsed_expiry = datetime.strptime(expiry,'%Y-%m-%d')
+    parsed_trade_date = datetime.strptime(expiry,'%Y-%m-%d')
+
+    # Format the date string as desired
+    formatted_expiry = parsed_expiry.strftime('%m/%d/%Y')
+    formatted_trade_date = parsed_trade_date.strftime('%m/%d/%Y')
+
     # Create a trade object
     new_trade = models.Trade(
         strategy_id=strategy_id,  # Ensure that strategy_id is included
         trade_type=trade_type,
         strike=strike,
-        expiry=expiry,
-        premium_per_contract=premium_per_contract,
+        expiry=formatted_expiry,
+        opening_premium=opening_premium,
         num_contracts=num_contracts,
-        trade_date=trade_date     
+        trade_date=formatted_trade_date     
     )
-    
+       
     # Add the new trade to the session
     db.add(new_trade)
     
     # Commit the transaction
     db.commit()
+
+    # Retrive the strategy by the strategy_id
+    strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
+
+    # Update the total_premium_received attribute of the strategy
+    strategy.update_total_premium_received(db)
     
-    # Redirect the user to the main page using GET method
-    return RedirectResponse(url="/main/", status_code=status.HTTP_303_SEE_OTHER)
+    # Redirect the user to the root menu using GET method
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
-
-
+# In rolling a trade we need to close the data for the old trade.
+# Closing the old trade involves the following:
+# Update the closing_premium for the trade, 
+# recalculate the total_premium_received
+# Add the new trade
+# Update the total_premium_received in the strategies table
+#   - Sum the total_premium_received in the trades table for that strategy id
+#
 
