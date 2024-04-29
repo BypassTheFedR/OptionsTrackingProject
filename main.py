@@ -105,16 +105,17 @@ async def home_page(
         context = {'request': request, 'strategies': strategies, 'prices': prices}
         
         for strategy in strategies:
+            # Gets the strategy type from the trades table
             strategy_type = db.query(models.Trade.trade_type).filter(models.Trade.strategy_id == strategy.id).order_by(desc(models.Trade.id)).first()
             strategy_type_str = strategy_type[0]
             # print(strategy_type_str)
             last_price_query = db.query(models.Prices).filter(models.Prices.strategy_id == strategy.id).order_by(desc(models.Prices.id)).first()
             last_price = last_price_query.price
             strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
-            # if strategy_type_str.lower() == "call":
-            #     strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
-            # elif strategy_type_str.lower() == "put":
-            #     strategy.total_gained = strategy.total_premium_received
+            if strategy_type_str.lower() == "call":
+                strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
+            elif strategy_type_str.lower() == "put":
+                strategy.total_gained = strategy.total_premium_received
         
         if hx_request:
             return templates.TemplateResponse("table_main.html", context)

@@ -73,7 +73,12 @@
                         </tr>
                         <tr>
                             <td class="table-label">Total Gained:</td>
+                            <td>{{ "$%.2f"|format(strategy.total_gained) }}</td>           
+                        </tr>
+                        <!-- <tr>
+                            <td class="table-label">Total Gained:</td>
                             <td>{{ "$%.2f"|format(strategy.total_premium_received - strategy.initial_cost_basis + strategy.prices[-1].price) }}</td>           
+                        </tr> -->
                         <tr>
                             <td class="table-label">ROI:</td>
                             <td >{{ "%.2f"|format((strategy.total_premium_received - strategy.initial_cost_basis + strategy.prices[-1].price) / strategy.initial_cost_basis * 100) }}%</td>
