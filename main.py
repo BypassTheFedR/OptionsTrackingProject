@@ -116,6 +116,11 @@ async def home_page(
                 strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
             elif strategy_type_str.lower() == "put":
                 strategy.total_gained = strategy.total_premium_received
+            
+            # Future functionality to calculate total_gained and ROI taking into account open short positions
+            # yfinance.Ticker.option_chain(Date) returns a pandas like dataframe with option information
+            # E.G. Total_gained = Total_premium_received - initial_cost_basis + last_price - short_position
+            
         
         if hx_request:
             return templates.TemplateResponse("table_main.html", context)

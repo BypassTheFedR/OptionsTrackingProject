@@ -75,18 +75,15 @@
                             <td class="table-label">Total Gained:</td>
                             <td>{{ "$%.2f"|format(strategy.total_gained) }}</td>           
                         </tr>
-                        <!-- <tr>
-                            <td class="table-label">Total Gained:</td>
-                            <td>{{ "$%.2f"|format(strategy.total_premium_received - strategy.initial_cost_basis + strategy.prices[-1].price) }}</td>           
-                        </tr> -->
                         <tr>
                             <td class="table-label">ROI:</td>
-                            <td >{{ "%.2f"|format((strategy.total_premium_received - strategy.initial_cost_basis + strategy.prices[-1].price) / strategy.initial_cost_basis * 100) }}%</td>
+                            <td >{{ "%.2f"|format((strategy.total_gained) / strategy.initial_cost_basis * 100) }}%</td>
                         </tr>
                     </tbody>
                 </table>
                 <a onclick="confirmClose('{{ strategy.id }}')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded">Close Strategy</a>
                 <a href="/add_trade/?strategy_id={{ strategy.id }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add Trade</a>
+                <a href="/roll_trade/" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Roll Trade</a>
             </div>
             {% endfor %}
         </div>
