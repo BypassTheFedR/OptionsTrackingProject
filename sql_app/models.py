@@ -41,7 +41,7 @@ class Strategy(Base):
 
         # Get the initial cost basis
         initial_basis = db.query(Strategy.initial_cost_basis).filter(Strategy.id == self.id).scalar()
-        print(initial_basis)
+        # print(initial_basis)
 
         # Calculate the new basis
         new_basis = initial_basis - total_premium_received
@@ -67,10 +67,11 @@ class Trade(Base):
     trade_date = Column(Date)
     assigned_price = Column(Float)
     assigned = Column(Boolean) # When updating a trade and this is true, increment times assigned in strategies
+    status = Column(String)
 
     strategy = relationship("Strategy", back_populates="trades")
 
-    def __init__(self, strategy_id, trade_type, strike, expiry, opening_premium,num_contracts,trade_date,closing_premium=0.0,assigned_price=None,assigned=0):
+    def __init__(self, strategy_id, trade_type, strike, expiry, opening_premium,num_contracts,trade_date,closing_premium=0.0,assigned_price=None,assigned=0, status="Open"):
         self.strategy_id = strategy_id
         self.trade_type = trade_type
         self.strike = strike
@@ -82,6 +83,7 @@ class Trade(Base):
         self.trade_date = datetime.strptime(trade_date, '%m/%d/%Y')
         self.assigned_price = assigned_price
         self.assigned = assigned
+        self.status = status
 
 class Prices(Base):
 

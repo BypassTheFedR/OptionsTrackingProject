@@ -15,3 +15,36 @@
 .table-label {
     padding-right: 40px;
 }
+
+.bg-white.rounded.shadow.p-4 .btn {
+    display: inline-block;
+    margin-right: 5px; /* Adjust margin between buttons */
+    margin-bottom: 10px; /* Add margin between rows of buttons */
+    padding: 8px 12px; /* Adjust padding as needed */
+    background-color: #4a90e2; /* Adjust color as needed */
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    cursor: pointer; /* Add cursor pointer */
+}
+
+.btn:hover {
+    background-color: #3182ce; /* Adjust hover color as needed */
+}
+
+/* Additional CSS for the buttons within .flex-container */
+.flex-container a.btn {
+    display: inline-block;
+    margin-right: 5px; /* Adjust margin between buttons */
+    margin-bottom: 10px; /* Add margin between rows of buttons */
+    padding: 8px 12px; /* Adjust padding as needed */
+    background-color: #4a90e2; /* Adjust color as needed */
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.flex-container a.btn:hover {
+    background-color: #3182ce; /* Adjust hover color as needed */
+}

@@ -8,7 +8,7 @@
     <!-- Include Tailwind CSS -->
     <script src="https://unpkg.com/htmx.org@1.61"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="C:\Users\joshu\OneDrive\Coding\OptionsTrackingProject\sql_app\styles\styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
     <script>
         function confirmClose(strategyId) {
             if (confirm("Are you sure you want to close this strategy?")) {
@@ -44,11 +44,11 @@
                 <!-- Development Notes:
                 1) add the close_strategy button to the card - Done!
                 2) add the add_trade and roll_trade button to each card-->
-                <a href="/add_strategy" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Strategy</a>                
+                <a href="/add_strategy" class="btn">Add New Strategy</a>                
                 <!-- <a href="/add_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add New Trade</a> -->
                 <!-- <a href="/roll_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Roll Trade</a> -->
                 <!-- <a href="/close_trade" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close Trade</a> -->
-                <a href="/update_prices" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Update Stock Prices</a>
+                <a href="/update_prices" class="btn">Update Stock Prices</a>
             </div>
         </div>
         <h1 class="text-3xl font-semibold text-center mb-8">My Strategies</h1>
@@ -81,9 +81,10 @@
                         </tr>
                     </tbody>
                 </table>
-                <a onclick="confirmClose('{{ strategy.id }}')" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded">Close Strategy</a>
-                <a href="/add_trade/?strategy_id={{ strategy.id }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add Trade</a>
-                <a href="/roll_trade/" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Roll Trade</a>
+                <a onclick="confirmClose('{{ strategy.id }}')" class="btn">Close Strategy</a>
+                <a href="/add_trade/?strategy_id={{ strategy.id }}" class="btn">Add Trade</a>
+                <a href="/close_trade/?strategy_id={{ strategy.id }}" class="btn">Close Trade</a>
+                <a href="/roll_trade/" class="btn">Roll Trade</a>
             </div>
             {% endfor %}
         </div>
