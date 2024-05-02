@@ -273,21 +273,21 @@ async def add_trade(
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.get("/close_trade/")
-async def close_trade_form(request: Request, strategy_id: int, trade_id: int, db: Session = Depends(get_db)):
+async def close_trade_form(request: Request, strategy_id: int, db: Session = Depends(get_db)):
     # Retrive the strategy from the databaes based on the strategy_id
     # Retrive the trade, add a closing premium, set assigned to False/ True (False by default), and add an assigned price
     strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
-    trade = db.query(models.Trade).filter(models.Trade.id == trade_id).filter(models.Trade.status == "Open")
+    trades = db.query(models.Trade).filter(models.Trade.strategy_id == strategy_id).filter(models.Trade.status == "Open")
 
     if strategy is None:
         # Handle the case where the strategy is not found
         raise HTTPException(status_code=404, detail="Strategy not found")
     
-    if trade is None:
+    if trades is None:
         # Handle the case where the trade is not found
         raise HTTPException(status_code=404, detail="Trade not found")
     
-    return templates.TemplateResponse("close_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "trade_id": trade_id, "trade" : trade})
+    return templates.TemplateResponse("close_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "trades" : trades})
 
 # Function for adding trades to the Trades class
 # Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
