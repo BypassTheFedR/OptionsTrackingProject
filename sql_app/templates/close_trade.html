@@ -8,48 +8,79 @@
     <!-- Include Tailwind CSS -->
     <script src="https://unpkg.com/htmx.org@1.61"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
+    <link rel="stylesheet" href="/static/styles.css">
 <body class="bg-gray-100">
     <div class="container mx-auto py-8">
         <h1 class="text-3xl font-semibold text-center mb-8">Close Trade</h1>
-        <form action="/close_trade/" method="post">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Trade Cards -->
-                {% for trade in trades %}
-                <div class="bg-white rounded shadow p-4">
-                    <h2 class="text-xl font-semibold">{{ strategy.underlying }}</h2>
-                    <table class="table-auto mb-4">
-                        <tbody>
-                            <tr>
-                                <td class="table-label">Trade ID:</td>
-                                <td>{{ trade.id }}</td>
-                            </tr>
-                            <tr>
-                                <td class="table-label">Trade Type:</td>
-                                <td>{{ trade.trade_type }}</td>
-                            </tr>
-                            <tr>
-                                <td class="table-label">Opening Premium:</td>
-                                <td>{{ "$%.2f"|format(trade.opening_premium) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="closing_premium">Closing Premium:</label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="closing_premium" name="closing_premium" type="number" step="0.01" required>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Trade Cards -->
+            {% for trade in trades %}
+            <div class="bg-white rounded shadow p-4">
+                <h2 class="text-xl font-semibold">{{ strategy.underlying }}</h2>
+                <form action="/close_trade" method="post">
+                <table class="table-auto mb-4">
+                    <tbody>
+                        <tr>
+                            <td class="table-label">Trade ID:</td>
+                            <td>{{ trade.id }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Strategy ID:</td>
+                            <td>{{ trade.strategy_id }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Trade Type:</td>
+                            <td>{{ trade.trade_type }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Strike:</td>
+                            <td>{{ "$%.2f"|format(trade.strike) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Opening Premium:</td>
+                            <td>{{ "$%.2f"|format(trade.opening_premium) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label">Expiration Date:</td>
+                            <td>{{ trade.expiry }}</td>
+                        </tr>
+                        <tr>
+                            <td class="table-label"># of Contracts:</td>
+                            <td>{{ trade.num_contracts }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <input type="hidden" name="strategy_id" value="{{ trade.strategy_id }}">
+                <input type="hidden" name="trade_id" value="{{ trade.id }}">
+                <input type="hidden" name="trade_type" value="{{ trade.trade_type }}">
+                <input type="hidden" name="closing_strike" value="{{ trade.strike }}">
+                <input type="hidden" name="old_opening_premium" value="{{ trade.opening_premium }}">
+                <input type="hidden" name="old_expiry" value="{{ trade.expiry }}">
+                <input type="hidden" name="num_contracts" value="{{ trade.num_contracts }}">
+                <input type="hidden" name="old_trade_date" value="{{ trade.trade_date }}">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="closing_premium">Closing Premium:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="closing_premium" name="closing_premium" type="number" step="0.01">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="closing_premium">Closing Date:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="closing_date" name="closing_date" type="date" value="{{ current_date }}">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="closing_premium">Contracts Closed (default = all):</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="contracts_closed" name="contracts_closed" type="number" value="{{ trade.num_contracts }}">
+                <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="assigned">Assigned?</label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="assigned" name="assigned" type="text">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="assigned_price">Assigned Price:</label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="assigned_price" name="assigned_price" type="number" step="0.01">    
-                    <a href="/close_trade/?strategy_id={{ strategy.id }}" class="btn">Close Trade</a>
+                    <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="assigned" name="assigned">
+                        <option value="False" selected>False</option>
+                        <option value="True">True</option>
+                    </select>
                 </div>
-                {% endfor %}
-            <input type="hidden" name="trade_id" value="{{ trade_id  }}">
-            <div class="flex items-center justify-between">
-                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
-                    Close Trade
-                </button>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="assigned_price">Assigned Price:</label>
+                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="assigned_price" name="assigned_price" type="number" step="0.01" value="0.00">    
+                <div class="flex items-center justify-between mt-4"> <!-- Add mt-4 class here for margin-top -->
+                    <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                        Close Trade
+                    </button>
+                </form>
+                </div>
             </div>
-        </form>
+            {% endfor %}
     </div>
 </body>
 </html>

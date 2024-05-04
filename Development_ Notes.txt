@@ -1,0 +1,10 @@
+# Database
+    # Strategy
+
+    # Trades
+    # Add closing_date field
+
+# main.py
+
+
+# 

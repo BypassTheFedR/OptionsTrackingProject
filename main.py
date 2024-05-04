@@ -80,6 +80,9 @@ logging.basicConfig(level=logging.INFO)
 # Define a logger
 logger = logging.getLogger(__name__)
 
+# Get the current date for use in default values on the page
+current_date = datetime.now().strftime("%Y-%m-%d")
+
 app = FastAPI()
 
 # Mapped to the templates folder in my apps directory
@@ -220,7 +223,7 @@ async def add_trade_form(request: Request, strategy_id: int, db: Session = Depen
         # Handle the case where the strategy is nto found
         raise HTTPException(status_code=404, detail="Strategy not found")
     
-    return templates.TemplateResponse("add_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy})
+    return templates.TemplateResponse("add_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "current_date" : current_date})
 
 # Function for adding trades to the Trades class
 # Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
@@ -279,6 +282,8 @@ async def close_trade_form(request: Request, strategy_id: int, db: Session = Dep
     strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
     trades = db.query(models.Trade).filter(models.Trade.strategy_id == strategy_id).filter(models.Trade.status == "Open")
 
+    # current_date = datetime.now().strftime("%Y-%m-%d")
+
     if strategy is None:
         # Handle the case where the strategy is not found
         raise HTTPException(status_code=404, detail="Strategy not found")
@@ -287,46 +292,75 @@ async def close_trade_form(request: Request, strategy_id: int, db: Session = Dep
         # Handle the case where the trade is not found
         raise HTTPException(status_code=404, detail="Trade not found")
     
-    return templates.TemplateResponse("close_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "trades" : trades})
+    return templates.TemplateResponse("close_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "trades" : trades, "current_date" : current_date})
 
 # Function for adding trades to the Trades class
 # Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
 # I had to alter the schema to allow for taking the BTC premium into account for the final premium for the trade
 # added opening_premium and closing_premium and set total_premium to be calculated from opening - closing. Closing is set to 0 by default in the trades init
 @app.post("/close_trade/")
-async def add_trade(
-    request: Request,
+async def close_trade(
+    # request: Request,
     strategy_id: int = Form(...),
+    trade_id: int = Form(...),
     trade_type: str = Form(...),
-    strike: float = Form(...),
-    expiry: str = Form(...),
-    opening_premium: float = Form(...),
+    closing_strike: float = Form(...),
+    old_opening_premium: float = Form(...),
+    old_expiry: str = Form(...),
     num_contracts: int = Form(...),
-    trade_date: str = Form(...),
+    closing_premium: float = Form(...),
+    closing_date: str = Form(...),
+    contracts_closed: int = Form(...),
+    assigned: str = Form(...),
+    assigned_price: float = Form(...),
+    old_trade_date: str = Form(...),
     db: Session = Depends(get_db)
 ):
     # Parse the date string 
-    parsed_expiry = datetime.strptime(expiry,'%Y-%m-%d')
-    parsed_trade_date = datetime.strptime(expiry,'%Y-%m-%d')
+    parsed_expiry = datetime.strptime(old_expiry,'%Y-%m-%d')
+    parsed_closing_date = datetime.strptime(closing_date,'%Y-%m-%d')
+    parsed_trade_date = datetime.strptime(old_trade_date,'%Y-%m-%d')
 
     # Format the date string as desired
     formatted_expiry = parsed_expiry.strftime('%m/%d/%Y')
+    formatted_closed_date = parsed_closing_date.strftime('%m/%d/%Y')
     formatted_trade_date = parsed_trade_date.strftime('%m/%d/%Y')
 
-    # Create a trade object
-    new_trade = models.Trade(
-        strategy_id=strategy_id,  # Ensure that strategy_id is included
-        trade_type=trade_type,
-        strike=strike,
-        expiry=formatted_expiry,
-        opening_premium=opening_premium,
-        num_contracts=num_contracts,
-        trade_date=formatted_trade_date     
-    )
-       
-    # Add the new trade to the session
-    db.add(new_trade)
+    # Check if all trades were closed, if not handle appropriately, if so close the trade
+    if contracts_closed == num_contracts:
+        # retrieve the trade by trade id
+        closing_trade = db.query(models.Trade).filter(models.Trade.id == trade_id).first()
+
+        closing_trade.closing_premium = closing_premium
+        closing_trade.total_premium_received = (old_opening_premium - closing_premium) * num_contracts
+        closing_trade.status = "Closed"
+        # Need to add a closing date field to the trades table
+        # closing_trade.closing_date = formatted_closed_date
     
+    else:
+        # Create a trade object
+        new_trade = models.Trade(
+            strategy_id=strategy_id,  # Ensure that strategy_id is included
+            trade_type=trade_type,
+            strike=closing_strike,
+            expiry=formatted_expiry,
+            opening_premium=old_opening_premium,
+            num_contracts=num_contracts - contracts_closed,
+            trade_date=formatted_trade_date     
+        )
+       
+        # Add the new trade to the session
+        db.add(new_trade)
+
+        # Close trades that are not remaining open
+        closing_trade = db.query(models.Trade).filter(models.Trade.id == trade_id).first()
+
+        # Do data operations
+        closing_trade.closing_premium = closing_premium
+        closing_trade.num_contracts = contracts_closed
+        closing_trade.total_premium_received = (old_opening_premium - closing_premium) * closing_trade.num_contracts
+        closing_trade.status = "Closed"
+
     # Commit the transaction
     db.commit()
 
