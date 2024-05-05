@@ -110,32 +110,35 @@ async def home_page(
         prices = db.query(models.Prices).all()
         
         context = {'request': request, 'strategies': strategies, 'prices': prices}
+
         
         for strategy in strategies:
             # Gets the strategy type from the trades table
             
             strategy_type = db.query(models.Trade.trade_type).filter(models.Trade.strategy_id == strategy.id).order_by(desc(models.Trade.id)).first()
             
-            
             if strategy_type == None:
                 print("Add the first trade for this strategy")
                 # Sets trategy_type_str to "No trades" if a trade has not yet been assigned
                 strategy_type_str = "No trades"
-                strategy.total_gained = strategy.total_premium_received
+                strategy.total_gained = None
             else:
                 strategy_type_str = strategy_type[0]
             
             last_price_query = db.query(models.Prices).filter(models.Prices.strategy_id == strategy.id).order_by(desc(models.Prices.id)).first()
             last_price = last_price_query.price
-            # strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
+
+            # strategy.total_gained = strategy.total_premium_received - strategy.average_cost_basis + last_price
             if strategy_type_str.lower() == "call":
-                strategy.total_gained = strategy.total_premium_received - strategy.initial_cost_basis + last_price
+                strategy.total_gained = strategy.total_premium_received - strategy.average_cost_basis + last_price
             elif strategy_type_str.lower() == "put":
                 strategy.total_gained = strategy.total_premium_received
+            else:
+                strategy.total_gained = 0.0
             
             # Future functionality to calculate total_gained and ROI taking into account open short positions
             # yfinance.Ticker.option_chain(Date) returns a pandas like dataframe with option information
-            # E.G. Total_gained = Total_premium_received - initial_cost_basis + last_price - short_position
+            # E.G. Total_gained = Total_premium_received - average_cost_basis + last_price - short_position
 
         
         if hx_request:
@@ -159,7 +162,7 @@ async def add_strategy_form(request: Request):
 async def add_strategy(
     request: Request,
     underlying: str = Form(...),
-    initial_cost_basis: float = Form(...),
+    average_cost_basis: float = Form(...),
     initial_trade_date: str = Form(...),
     db: Session = Depends(get_db)
 ):    
@@ -172,7 +175,7 @@ async def add_strategy(
     # Create a Strategy object
     new_strategy = models.Strategy(
         underlying=underlying,
-        initial_cost_basis=initial_cost_basis,
+        average_cost_basis=average_cost_basis,
         initial_trade_date=formatted_date
     )
     
@@ -191,7 +194,7 @@ async def add_strategy(
 
 class add_strategy(BaseModel):
     underlying: str 
-    initial_cost_basis: float
+    average_cost_basis: float
     initial_trade_date: str
 
 @app.get('/update_prices')
@@ -234,6 +237,7 @@ async def add_trade(
     request: Request,
     strategy_id: int = Form(...),
     trade_type: str = Form(...),
+    call_purchase_price: float = Form(...),
     strike: float = Form(...),
     expiry: str = Form(...),
     opening_premium: float = Form(...),
@@ -253,6 +257,7 @@ async def add_trade(
     new_trade = models.Trade(
         strategy_id=strategy_id,  # Ensure that strategy_id is included
         trade_type=trade_type,
+        call_purchase_price=call_purchase_price,
         strike=strike,
         expiry=formatted_expiry,
         opening_premium=opening_premium,
@@ -271,6 +276,9 @@ async def add_trade(
 
     # Update the total_premium_received attribute of the strategy
     strategy.update_total_premium_received(db)
+
+    # Update the average_cost_basis
+    strategy.update_average_cost_basis(db)
     
     # Redirect the user to the root menu using GET method
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)

@@ -1,7 +1,7 @@
 {% for strategy in strategies %}
     <tr>
         <td class="border px-2 py-2">{{ strategy.underlying }}</td>
-        <td class="border px-2 py-2">{{ strategy.initial_cost_basis }}</td>
+        <td class="border px-2 py-2">{{ strategy.average_cost_basis }}</td>
         <td class="border px-2 py-2">{{ strategy.current_cost_basis }}</td>
     </tr>
 {% endfor %}

@@ -60,8 +60,8 @@
                 <table class="table-auto mb-4">
                     <tbody>
                         <tr>
-                            <td class="table-label">Initial Cost Basis:</td>
-                            <td>{{ "$%.2f"|format(strategy.initial_cost_basis) }}</td>
+                            <td class="table-label">Average Cost Basis:</td>
+                            <td>{{ "$%.2f"|format(strategy.average_cost_basis) }}</td>
                         </tr>
                         <tr>
                             <td class="table-label">Current Cost Basis:</td>
@@ -77,7 +77,7 @@
                         </tr>
                         <tr>
                             <td class="table-label">ROI:</td>
-                            <td >{{ "%.2f"|format((strategy.total_gained) / strategy.initial_cost_basis * 100) }}%</td>
+                            <td >{{ "%.2f"|format((strategy.total_gained) / strategy.average_cost_basis * 100) }}%</td>
                         </tr>
                     </tbody>
                 </table>
