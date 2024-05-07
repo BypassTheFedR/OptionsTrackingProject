@@ -113,17 +113,16 @@ async def home_page(
 
         
         for strategy in strategies:
-            # Gets the strategy type from the trades table
+            # Gets a trade object based on strategy id
+            trade = db.query(models.Trade).filter(models.Trade.strategy_id == strategy.id).order_by(desc(models.Trade.id)).first()            
             
-            strategy_type = db.query(models.Trade.trade_type).filter(models.Trade.strategy_id == strategy.id).order_by(desc(models.Trade.id)).first()
-            
-            if strategy_type == None:
+            if trade == None:
                 print("Add the first trade for this strategy")
                 # Sets trategy_type_str to "No trades" if a trade has not yet been assigned
                 strategy_type_str = "No trades"
                 strategy.total_gained = None
             else:
-                strategy_type_str = strategy_type[0]
+                strategy_type_str = trade.trade_type
             
             last_price_query = db.query(models.Prices).filter(models.Prices.strategy_id == strategy.id).order_by(desc(models.Prices.id)).first()
             last_price = last_price_query.price
@@ -221,17 +220,18 @@ async def close_strategy(strategyId: str = Form(...), db: Session = Depends(get_
 async def add_trade_form(request: Request, strategy_id: int, db: Session = Depends(get_db)):
     # Retrive the strategy from the databaes based on the strateg_id
     strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
+
+    trade = db.query(models.Trade).filter(models.Trade.strategy_id == strategy_id).order_by(desc(models.Trade.id)).first()
+
+    purchase_price = "{:.2f}".format(trade.call_purchase_price) if trade else None
     
     if strategy is None:
         # Handle the case where the strategy is nto found
         raise HTTPException(status_code=404, detail="Strategy not found")
     
-    return templates.TemplateResponse("add_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "current_date" : current_date})
+    return templates.TemplateResponse("add_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "current_date" : current_date, "purchase_price" : purchase_price})
 
 # Function for adding trades to the Trades class
-# Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
-# I had to alter the schema to allow for taking the BTC premium into account for the final premium for the trade
-# added opening_premium and closing_premium and set total_premium to be calculated from opening - closing. Closing is set to 0 by default in the trades init
 @app.post("/add_trade/")
 async def add_trade(
     request: Request,
@@ -267,9 +267,11 @@ async def add_trade(
        
     # Add the new trade to the session
     db.add(new_trade)
-    
+
     # Commit the transaction
     db.commit()
+
+    # Recalculates trade  data metrics and updates accordingly
 
     # Retrive the strategy by the strategy_id
     strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
@@ -303,9 +305,6 @@ async def close_trade_form(request: Request, strategy_id: int, db: Session = Dep
     return templates.TemplateResponse("close_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "trades" : trades, "current_date" : current_date})
 
 # Function for adding trades to the Trades class
-# Make it match the init method, get the strategy_id as apart of the post (Like with close_strategy) This is extracted from the Jinga engine
-# I had to alter the schema to allow for taking the BTC premium into account for the final premium for the trade
-# added opening_premium and closing_premium and set total_premium to be calculated from opening - closing. Closing is set to 0 by default in the trades init
 @app.post("/close_trade/")
 async def close_trade(
     # request: Request,

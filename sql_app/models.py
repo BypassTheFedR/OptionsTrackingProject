@@ -10,13 +10,13 @@ class Strategy(Base):
     id = Column(Integer, primary_key=True, index=True)
     underlying = Column(String)
     average_cost_basis = Column(Float)
-    current_cost_basis = Column(Float)
+    adjusted_cost_basis = Column(Float)
     initial_trade_date = Column(Date)
     total_premium_received = Column(Float)
     premium_per_share = Column(Float)
     status = Column(String)
     closing_date = Column(Date)
-    total_gained = Column(Float)
+    # total_gained = Column(Float)
     
     # Define relationship to the Trades table
     trades = relationship("Trade", back_populates="strategy")
@@ -27,7 +27,7 @@ class Strategy(Base):
     def __init__(self, underlying,average_cost_basis,initial_trade_date,total_premium_received=0,times_assigned=0,status="Open",closing_date=None):
         self.underlying = underlying
         self.average_cost_basis = average_cost_basis
-        self.current_cost_basis = average_cost_basis - total_premium_received
+        self.adjusted_cost_basis = average_cost_basis - total_premium_received
         self.initial_trade_date = datetime.strptime(initial_trade_date, '%m/%d/%Y')
         self.total_premium_received = total_premium_received
         self.times_assigned = times_assigned
@@ -49,7 +49,7 @@ class Strategy(Base):
         new_basis = initial_basis - total_premium_received
 
         # Update the current cost basis
-        db.query(Strategy).filter(Strategy.id == self.id).update({Strategy.current_cost_basis: new_basis})
+        db.query(Strategy).filter(Strategy.id == self.id).update({Strategy.adjusted_cost_basis: new_basis})
         
         db.commit()
     
@@ -77,14 +77,28 @@ class Strategy(Base):
             num_call_contracts += trade.num_contracts
         
         average_cost_basis = sum_trade_cost_basis / (num_put_contracts + num_call_contracts)
-        print(average_cost_basis)
 
         # Update the average cost basis
         db.query(Strategy).filter(Strategy.id == self.id).update({Strategy.average_cost_basis: average_cost_basis})
 
         db.commit()
 
+    def update_new_cost_basis(self, db : Session):
+        # get the strategy object
+        strategy = db.query(Strategy).filter(Strategy.id == self.id).first()
 
+        # get the total_premium_received
+        total_premium_received = strategy.total_premium_received 
+
+        # get the average cost basis
+        average_cost_basis = strategy.average_cost_basis
+
+        # Subtract the total_premium_received from the avergage_cost_basis
+        adjusted_cost_basis = average_cost_basis - total_premium_received
+        print(adjusted_cost_basis)
+
+        # update the adjusted cost basis in the model
+        db.query(Strategy.id == self.id).update({Strategy.adjusted_cost_basis : adjusted_cost_basis})
 
     
 class Trade(Base):
