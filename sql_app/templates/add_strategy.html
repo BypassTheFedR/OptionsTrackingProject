@@ -7,9 +7,17 @@
     <!-- Include Tailwind CSS -->
     <script src="https://unpkg.com/htmx.org@1.61"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto py-8">
+        <div class="flex justify-end mb-4">
+            <div class="flex-container">
+                <!-- Development Notes:-->
+                <a href="/" class="btn">Return to main page</a>                
+                <a href="/update_prices" class="btn">Update Stock Prices</a>
+            </div>
+        </div>
         <h1 class="text-3xl font-semibold text-center mb-8">Add Strategy</h1>
         <form action="/add_strategy" method="post">
             <div class="mb-4">

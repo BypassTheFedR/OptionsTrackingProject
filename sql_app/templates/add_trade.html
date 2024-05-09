@@ -8,15 +8,26 @@
     <!-- Include Tailwind CSS -->
     <script src="https://unpkg.com/htmx.org@1.61"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto py-8">
+        <div class="flex justify-end mb-4">
+            <div class="flex-container">
+                <!-- Development Notes:-->
+                <a href="/" class="btn">Return to main page</a>                
+                <a href="/update_prices" class="btn">Update Stock Prices</a>
+            </div>
+        </div>
         <h1 class="text-3xl font-semibold text-center mb-8">Add Trade</h1>
         <form action="/add_trade/" method="post">
             <input type="hidden" name="strategy_id" value="{{ strategy_id  }}">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="trade_type">Trade Type:</label>
-                <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="trade_type" name="trade_type" type="text" required>
+                <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="trade_type" name="trade_type" required>
+                    <option value="Call">Call</option>
+                    <option value="Put">Put</option>
+                </select>
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="call_purchase_price">Purchase Price (calls only):</label>

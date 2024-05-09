@@ -153,6 +153,12 @@ async def home_page(
         print(error_message)
         return HTMLResponse(content=f"<h1>{error_message}</h1>", status_code=500)
 
+@app.get("/about/")
+async def about(request: Request):
+    return templates.TemplateResponse("about.html", {"request" :  request})
+
+# @app.get("/main/")
+
 @app.get("/add_strategy/")
 async def add_strategy_form(request: Request):
     return templates.TemplateResponse("add_strategy.html", {"request" : request})
@@ -223,7 +229,7 @@ async def add_trade_form(request: Request, strategy_id: int, db: Session = Depen
 
     trade = db.query(models.Trade).filter(models.Trade.strategy_id == strategy_id).order_by(desc(models.Trade.id)).first()
 
-    purchase_price = "{:.2f}".format(trade.call_purchase_price) if trade else None
+    purchase_price = "{:.2f}".format(trade.call_purchase_price) if trade.call_purchase_price else 0.0
     
     if strategy is None:
         # Handle the case where the strategy is nto found
@@ -245,7 +251,9 @@ async def add_trade(
     trade_date: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    # Parse the date string 
+    # Parse the date string because the format from the html is %Y-%m-%d
+    # therefore the data needs to be converted to a string, reformatted
+    # and then set as a datetime data type
     parsed_expiry = datetime.strptime(expiry,'%Y-%m-%d')
     parsed_trade_date = datetime.strptime(trade_date,'%Y-%m-%d')
 
@@ -264,7 +272,11 @@ async def add_trade(
         num_contracts=num_contracts,
         trade_date=formatted_trade_date 
     )
-       
+    # Need to fix: This is a work around for the case of a put where the form requires a value for purchase_price
+    # 0.0 is passed by default and we update it to back to None here
+    # if new_trade.trade_type.lower() == "put":
+    #     new_trade.call_purchase_price = None
+
     # Add the new trade to the session
     db.add(new_trade)
 
@@ -323,26 +335,27 @@ async def close_trade(
     old_trade_date: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    # Parse the date string 
+    # Parse the date string, resulting type is datetime
     parsed_expiry = datetime.strptime(old_expiry,'%Y-%m-%d')
     parsed_closing_date = datetime.strptime(closing_date,'%Y-%m-%d')
     parsed_trade_date = datetime.strptime(old_trade_date,'%Y-%m-%d')
 
-    # Format the date string as desired
+    # Format the date string as desired, resulting type is string
     formatted_expiry = parsed_expiry.strftime('%m/%d/%Y')
     formatted_closed_date = parsed_closing_date.strftime('%m/%d/%Y')
     formatted_trade_date = parsed_trade_date.strftime('%m/%d/%Y')
 
     # Check if all trades were closed, if not handle appropriately, if so close the trade
+    # Future: add specific code for handling assignments
     if contracts_closed == num_contracts:
         # retrieve the trade by trade id
         closing_trade = db.query(models.Trade).filter(models.Trade.id == trade_id).first()
 
+        #  Set values using the closing_trade object
         closing_trade.closing_premium = closing_premium
         closing_trade.total_premium_received = (old_opening_premium - closing_premium) * num_contracts
         closing_trade.status = "Closed"
-        # Need to add a closing date field to the trades table
-        # closing_trade.closing_date = formatted_closed_date
+        closing_trade.closing_date = parsed_closing_date
     
     else:
         # Create a trade object
@@ -374,8 +387,10 @@ async def close_trade(
     # Retrive the strategy by the strategy_id
     strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
 
-    # Update the total_premium_received attribute of the strategy
+    # Update the total_premium_received, average_cost_basis, and new_cost_basis attribute of the strategy
     strategy.update_total_premium_received(db)
+    strategy.update_average_cost_basis(db)
+    strategy.update_new_cost_basis(db)
     
     # Redirect the user to the root menu using GET method
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
@@ -389,3 +404,147 @@ async def close_trade(
 #   - Sum the total_premium_received in the trades table for that strategy id
 #
 
+# Roll trade form get request
+# Data needed:
+# closing_premium for old trade
+# closing_date for old trade (Default today)
+# number of contracts closed (Default number open for that trade_id)
+# opening_premium for new trade
+# opening date for new trade (Default today)
+# Number of new contracts opened (Default number open for that trade_id)
+@app.get("/roll_trade/")
+async def roll_trade_form(request: Request, strategy_id: int, db: Session = Depends(get_db)):
+    # Retrive the strategy from the databaes based on the strategy_id
+    # Retrive the trade, add a closing premium, set assigned to False/ True (False by default), and add an assigned price
+    strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
+    trades = db.query(models.Trade).filter(models.Trade.strategy_id == strategy_id).filter(models.Trade.status == "Open")
+
+    # current_date = datetime.now().strftime("%Y-%m-%d")
+
+    if strategy is None:
+        # Handle the case where the strategy is not found
+        raise HTTPException(status_code=404, detail="Strategy not found")
+    
+    if trades is None:
+        # Handle the case where the trade is not found
+        raise HTTPException(status_code=404, detail="Trade not found")
+    
+    return templates.TemplateResponse("roll_trade.html", {"request" : request, "strategy_id": strategy_id, "strategy" : strategy, "trades" : trades, "current_date" : current_date})
+
+@app.post("/roll_trade/")
+async def roll_trade(
+    strategy_id: int = Form(...),
+    old_trade_id: int = Form(...),
+    trade_type: str = Form(...),
+    old_opening_premium: float = Form(...),
+    closing_strike: float = Form(...),
+    old_expiry: str = Form(...),
+    old_num_contracts: int = Form(...),
+    call_purchase_price: Optional[float] = Form(None),  # Make this field optional with a default value of None
+    closing_premium: float = Form(...),
+    closing_date: str = Form(...),
+    rolled_contracts: int = Form(...),
+    opening_premium: float = Form(...),
+    new_strike: float = Form(...),
+    new_expiry: str = Form(...),
+    opening_date: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    # Parse the date string 
+    parsed_old_expiry = datetime.strptime(old_expiry,'%Y-%m-%d')
+    parsed_closing_date = datetime.strptime(closing_date,'%Y-%m-%d')
+    parsed_opening_date = datetime.strptime(opening_date,'%Y-%m-%d')
+    parsed_new_expiry = datetime.strptime(new_expiry,'%Y-%m-%d')
+
+    # Format the date string as desired
+    # *** not needed? *** formatted_old_expiry = parsed_old_expiry.strftime('%m/%d/%Y')
+    formatted_closing_date = parsed_closing_date.strftime('%m/%d/%Y')
+    formatted_opening_date = parsed_opening_date.strftime('%m/%d/%Y')
+    formatted_new_expiry = parsed_new_expiry.strftime('%m/%d/%Y')
+
+    # Check if all trades were closed, if not handle appropriately
+    if rolled_contracts == old_num_contracts:
+        # Update the closing trade using an update query
+        db.query(models.Trade).filter(models.Trade.id == old_trade_id).update(
+            {
+                models.Trade.closing_premium: closing_premium,
+                models.Trade.closing_date: parsed_closing_date,
+                models.Trade.total_premium_received: (old_opening_premium - closing_premium) * old_num_contracts,
+                models.Trade.status: "Closed"
+            }
+        )
+
+        new_trade = models.Trade(
+            strategy_id=strategy_id,  # Ensure that strategy_id is included
+            trade_type=trade_type,
+            strike=new_strike,
+            expiry=formatted_new_expiry,
+            opening_premium=opening_premium,
+            num_contracts=old_num_contracts,
+            trade_date=formatted_opening_date     
+        )
+        print("Is the problem here? - 4")      
+        # Add the new trade to the session
+        db.add(new_trade)
+    
+    else:
+        # If not all trades are rolled we need to close the trades that were closed,
+        # create a corresponding new trade with the trades that remain open,
+        # and create a new trade with the trades that were rolled.
+        # Future versions: While this is a rare occurence, 
+        updated_old_trade = models.Trade( # Misnomer, it's not actually updating, but creating a new trade record, this is fine for now
+            strategy_id=strategy_id,  # Ensure that strategy_id is included
+            trade_type=trade_type,
+            call_purchase_price=call_purchase_price,
+            strike=closing_strike,
+            expiry=old_expiry,
+            opening_premium=old_opening_premium,
+            num_contracts=old_num_contracts - rolled_contracts,
+            trade_date=parsed_closing_date     
+        )
+
+        new_trade = models.Trade(
+            strategy_id=strategy_id,  # Ensure that strategy_id is included
+            trade_type=trade_type,
+            call_purchase_price=call_purchase_price,
+            strike=new_strike,
+            expiry=parsed_new_expiry,
+            opening_premium=opening_premium,
+            num_contracts=old_num_contracts,
+            trade_date=formatted_opening_date     
+        )
+       
+        # Add the new trade to the session
+        db.add(updated_old_trade)
+        # Add the new trade to the session
+        db.add(new_trade)
+
+        # Close trades that are not remaining open
+        closing_trade = db.query(models.Trade).filter(models.Trade.id == old_trade_id).first()
+
+        # Do data operations
+        closing_trade.closing_premium = closing_premium
+        closing_trade.num_contracts = rolled_contracts
+        closing_trade.total_premium_received = (old_opening_premium - closing_premium) * closing_trade.num_contracts
+        closing_trade.status = "Closed"
+        ## Add the closing date
+    
+    # Commit the transaction
+    db.commit()
+    
+    # Retrieve the strategy by the strategy_id
+    strategy = db.query(models.Strategy).filter(models.Strategy.id == strategy_id).first()
+    
+    # Update the total_premium_received attribute of the strategy
+    strategy.update_total_premium_received(db)
+    strategy.update_average_cost_basis(db)
+    strategy.update_new_cost_basis(db)
+
+    # Things to test when I'm done
+    # _X__ old trade closed
+    # _X__ new trade opened
+    # _X__ total_premium recalculated
+    # ___ Make sure it handles correctly when not all contracts are rolled
+    
+    # Redirect the user to the root menu using GET method
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)

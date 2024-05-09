@@ -64,17 +64,19 @@ class Strategy(Base):
 
         # Query all puts associated with strategy
         put_trades = db.query(Trade).filter(Trade.strategy_id == self.id, Trade.trade_type.ilike("put")).all()
+
+        # Query all calls associated with the strategy
         call_trades = db.query(Trade).filter(Trade.strategy_id == self.id, Trade.trade_type.ilike("call")).all()
 
         # update the sum_trade_cost_basis with put data
         for trade in put_trades:
             sum_trade_cost_basis += trade.strike * trade.num_contracts
-            num_put_contracts += trade.num_contracts
+            num_put_contracts += 1
 
         # update the sum_trade_cost_basis with call data
         for trade in call_trades:
             sum_trade_cost_basis += trade.call_purchase_price * trade.num_contracts
-            num_call_contracts += trade.num_contracts
+            num_call_contracts += 1
         
         average_cost_basis = sum_trade_cost_basis / (num_put_contracts + num_call_contracts)
 
@@ -98,7 +100,10 @@ class Strategy(Base):
         print(adjusted_cost_basis)
 
         # update the adjusted cost basis in the model
-        db.query(Strategy.id == self.id).update({Strategy.adjusted_cost_basis : adjusted_cost_basis})
+        strategy_to_update = db.query(Strategy).filter(Strategy.id == self.id).first()
+        strategy_to_update.adjusted_cost_basis = adjusted_cost_basis
+
+        db.commit()
 
     
 class Trade(Base):
