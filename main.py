@@ -457,7 +457,7 @@ async def roll_trade(
     parsed_new_expiry = datetime.strptime(new_expiry,'%Y-%m-%d')
 
     # Format the date string as desired
-    # *** not needed? *** formatted_old_expiry = parsed_old_expiry.strftime('%m/%d/%Y')
+    formatted_old_expiry = parsed_old_expiry.strftime('%m/%d/%Y')
     formatted_closing_date = parsed_closing_date.strftime('%m/%d/%Y')
     formatted_opening_date = parsed_opening_date.strftime('%m/%d/%Y')
     formatted_new_expiry = parsed_new_expiry.strftime('%m/%d/%Y')
@@ -497,10 +497,10 @@ async def roll_trade(
             trade_type=trade_type,
             call_purchase_price=call_purchase_price,
             strike=closing_strike,
-            expiry=old_expiry,
+            expiry=formatted_old_expiry,
             opening_premium=old_opening_premium,
             num_contracts=old_num_contracts - rolled_contracts,
-            trade_date=parsed_closing_date     
+            trade_date=formatted_closing_date     
         )
 
         new_trade = models.Trade(
@@ -508,9 +508,9 @@ async def roll_trade(
             trade_type=trade_type,
             call_purchase_price=call_purchase_price,
             strike=new_strike,
-            expiry=parsed_new_expiry,
+            expiry=formatted_new_expiry,
             opening_premium=opening_premium,
-            num_contracts=old_num_contracts,
+            num_contracts=rolled_contracts,
             trade_date=formatted_opening_date     
         )
        
@@ -540,11 +540,13 @@ async def roll_trade(
     strategy.update_average_cost_basis(db)
     strategy.update_new_cost_basis(db)
 
+    print(strategy.total_premium_received)
+
     # Things to test when I'm done
     # _X__ old trade closed
     # _X__ new trade opened
     # _X__ total_premium recalculated
-    # ___ Make sure it handles correctly when not all contracts are rolled
+    # _X__ Make sure it handles correctly when not all contracts are rolled
     
     # Redirect the user to the root menu using GET method
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)

@@ -72,7 +72,7 @@ class Strategy(Base):
         for trade in put_trades:
             sum_trade_cost_basis += trade.strike * trade.num_contracts
             num_put_contracts += 1
-
+        
         # update the sum_trade_cost_basis with call data
         for trade in call_trades:
             sum_trade_cost_basis += trade.call_purchase_price * trade.num_contracts
