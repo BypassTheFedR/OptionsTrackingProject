@@ -125,7 +125,7 @@ async def home_page(
                 strategy_type_str = trade.trade_type
             
             last_price_query = db.query(models.Prices).filter(models.Prices.strategy_id == strategy.id).order_by(desc(models.Prices.id)).first()
-            last_price = last_price_query.price
+            last_price = last_price_query.price if last_price_query else 0.0
 
             # strategy.total_gained = strategy.total_premium_received - strategy.average_cost_basis + last_price
             if strategy_type_str.lower() == "call":
@@ -229,7 +229,7 @@ async def add_trade_form(request: Request, strategy_id: int, db: Session = Depen
 
     trade = db.query(models.Trade).filter(models.Trade.strategy_id == strategy_id).order_by(desc(models.Trade.id)).first()
 
-    purchase_price = "{:.2f}".format(trade.call_purchase_price) if trade.call_purchase_price else 0.0
+    purchase_price = "{:.2f}".format(trade.call_purchase_price) if trade else 0.0
     
     if strategy is None:
         # Handle the case where the strategy is nto found
